@@ -21,6 +21,8 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import com.testAuthentication.demo.security.jwt.AuthEntryPointJwt;
 import com.testAuthentication.demo.security.jwt.AuthTokenFilter;
 //import com.testAuthentication.demo.security.services.UserDetailsServiceImpl;
+import com.testAuthentication.demo.security.jwt.JwtAuthenticationProvider;
+import com.testAuthentication.demo.security.jwt.JwtUtils;
 
 @Configuration
 //@EnableWebSecurity
@@ -29,11 +31,14 @@ import com.testAuthentication.demo.security.jwt.AuthTokenFilter;
 //jsr250Enabled = true,
 //prePostEnabled = true) // by default
 public class WebSecurityConfig { // extends WebSecurityConfigurerAdapter {
-  @Autowired
- UserDetailsService userDetailsService;
+  //@Autowired
+ //UserDetailsService userDetailsService;
 
   @Autowired
   private AuthEntryPointJwt unauthorizedHandler;
+
+  @Autowired
+  private JwtUtils jwtUtils;
 
   @Bean
   public AuthTokenFilter authenticationJwtTokenFilter() {
@@ -45,7 +50,7 @@ public class WebSecurityConfig { // extends WebSecurityConfigurerAdapter {
 //    authenticationManagerBuilder.userDetailsService(userDetailsService).passwordEncoder(passwordEncoder());
 //  }
 
-@Bean
+/*@Bean
 public DaoAuthenticationProvider authenticationProvider() {
   
     DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
@@ -54,7 +59,7 @@ public DaoAuthenticationProvider authenticationProvider() {
     authProvider.setPasswordEncoder(passwordEncoder());
  
     return authProvider;
-}
+}*/
 
   
 //  @Bean
@@ -96,7 +101,8 @@ public DaoAuthenticationProvider authenticationProvider() {
               .anyRequest().authenticated()
         );
     
-    http.authenticationProvider(authenticationProvider());
+    //http.authenticationProvider(authenticationProvider());
+    http.authenticationProvider(new JwtAuthenticationProvider(jwtUtils));
 
     http.addFilterBefore(authenticationJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);
     

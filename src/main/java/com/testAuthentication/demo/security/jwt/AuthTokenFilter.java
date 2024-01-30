@@ -17,6 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.User;
@@ -37,9 +38,6 @@ public class AuthTokenFilter extends OncePerRequestFilter {
   @Autowired
   private JwtUtils jwtUtils;
 
-  //@Autowired
-  //private UserDetailsServiceImpl userDetailsService;
-
   private static final Logger logger = LoggerFactory.getLogger(AuthTokenFilter.class);
 
   @Override
@@ -48,22 +46,10 @@ public class AuthTokenFilter extends OncePerRequestFilter {
     try {
       String jwt = parseJwt(request);
       if (jwt != null && jwtUtils.validateJwtToken(jwt)) {
-        //String username = jwtUtils.getUserNameFromJwtToken(jwt);
 
-       // UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-        
-       // UsernamePasswordAuthenticationToken authentication = 
-       //     new UsernamePasswordAuthenticationToken(userDetails,
-        //                                            null,
-        //                                            userDetails.getAuthorities());
-        
-       // authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-
-        //SecurityContextHolder.getContext().setAuthentication(authentication);
-        
         this.createAuthentication(jwt).ifPresent(authentication -> {
           SecurityContextHolder.getContext().setAuthentication(authentication);
-      });
+        });
       }
     } catch (Exception e) {
       logger.error("Cannot set user authentication: {}", e);
@@ -77,36 +63,22 @@ public class AuthTokenFilter extends OncePerRequestFilter {
     return jwt;
   }
 
-  ////**************************************************/
+  //// **************************************************/
   public Optional<Authentication> createAuthentication(String token) {
 
-    Jws<Claims> jwsClaims = jwtUtils.validateToken(token);
-        if (jwsClaims == null) {
-            return Optional.empty();
-        }
-
-        Claims claims = jwsClaims.getBody();
-
-        /*String scopesString = claims.get("scopes").toString();
-        String[] authStrings = scopesString.split(",");*/
-
-        Collection<? extends GrantedAuthority> authorities = jwtUtils.getRolesFromToken(token);
-            /*Arrays.stream(authStrings)
-                .map(SimpleGrantedAuthority::new)
-                .collect(Collectors.toList());*/
-
-        String subject = claims.getSubject();
-        Long organism = jwtUtils.getOrganismFromToken(token);
-
-        UserDetailsImpl principal = new UserDetailsImpl(null, subject, "email", organism, "", authorities);
-        //org.springframework.security.core.userdetails.User principal = new User(subject, "", authorities);
-
-        return Optional.of(new UsernamePasswordAuthenticationToken(principal, token, authorities));
+    Jws<Claims> jwsClaims = jwtUtils.getClaims(token);
+    if (jwsClaims == null) {
+      return Optional.empty();
     }
 
-    
+    Collection<? extends GrantedAuthority> authorities = jwtUtils.getRolesFromJwtToken(token);
 
-    
+    String subject = jwtUtils.getUserNameFromJwtToken(token);
+    Long organism = jwtUtils.getOrganismFromJwtToken(token);
+
+    UserDetailsImpl principal = new UserDetailsImpl(null, subject, "email", organism, "", authorities);
+
+    return Optional.of(new UsernamePasswordAuthenticationToken(principal, token, authorities));
+  }
 
 }
-

@@ -25,15 +25,17 @@ public class TestController {
     return "User Content.";
   }
 
-  @GetMapping("/mod")
-  @PreAuthorize("hasRole('MODERATOR')")
-  public String moderatorAccess() {
+  @GetMapping("/mod/{organism}")
+ // @PreAuthorize("hasRole('MODERATOR')")
+ @PreAuthorize(" hasRole('MODERATOR') and #organism == authentication.principal.organism")
+  public String moderatorAccess(@PathVariable int organism) {
     return "Moderator Board.";
   }
 
-  @GetMapping("/admin")
-  @PreAuthorize("hasRole('ADMIN')")
-  public String adminAccess() {
+  @GetMapping("/admin/{organism}")
+  //@PreAuthorize("hasRole('ADMIN')")
+  @PreAuthorize(" hasRole('ADMIN') and #organism == authentication.principal.organism")
+  public String adminAccess(@PathVariable int organism) {
     return "Admin Board.";
   }
 }

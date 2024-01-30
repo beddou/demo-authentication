@@ -2,7 +2,7 @@ package com.testAuthentication.demo.security.jwt;
 
 import java.security.Key;
 import java.util.Collection;
-import java.util.Date;
+
 
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -15,7 +15,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Component;
 import org.springframework.web.util.WebUtils;
 
-import com.testAuthentication.demo.security.services.UserDetailsImpl;
+
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
@@ -42,24 +42,12 @@ public class JwtUtils {
       return null;
     }
   }
-  
-
-  public ResponseCookie generateJwtCookie(UserDetailsImpl userPrincipal) {
-    String jwt = generateTokenFromUsername(userPrincipal.getUsername());
-    ResponseCookie cookie = ResponseCookie.from(jwtCookie, jwt).path("/api").maxAge(24 * 60 * 60).httpOnly(true).build();
-    return cookie;
-  }
 
   public ResponseCookie getCleanJwtCookie() {
     ResponseCookie cookie = ResponseCookie.from(jwtCookie, null).path("/api").build();
     return cookie;
   }
 
-  public String getUserNameFromJwtToken(String token) {
-    return Jwts.parserBuilder().setSigningKey(key()).build()
-        .parseClaimsJws(token).getBody().getSubject();
-  }
-  
   private Key key() {
     return Keys.hmacShaKeyFor(Decoders.BASE64.decode(jwtSecret));
   }
@@ -81,12 +69,12 @@ public class JwtUtils {
     return false;
   }
 
-  public Jws<Claims> validateToken(String authToken) {
+  public Jws<Claims> getClaims(String authToken) {
     try {
-        
-        Jws<Claims> claims = Jwts.parserBuilder().setSigningKey(key()).build().parseClaimsJws(authToken);
-        return claims;
-   } catch (MalformedJwtException e) {
+
+      Jws<Claims> claims = Jwts.parserBuilder().setSigningKey(key()).build().parseClaimsJws(authToken);
+      return claims;
+    } catch (MalformedJwtException e) {
       logger.error("Invalid JWT token: {}", e.getMessage());
     } catch (ExpiredJwtException e) {
       logger.error("JWT token is expired: {}", e.getMessage());
@@ -97,25 +85,39 @@ public class JwtUtils {
     }
 
     return null;
-}
+  }
 
- public   /*Collection<String>*/  Collection<? extends GrantedAuthority> getRolesFromToken(String token) {
-        Claims claims = Jwts.parserBuilder().setSigningKey(key()).build().parseClaimsJws(token).getBody();
-        return AuthorityUtils.createAuthorityList(claims.get("roles", Collection.class));
-       
+  public String getUserNameFromJwtToken(String token) {
+    Jws<Claims> jwsClaims = getClaims(token);
+    if (jwsClaims == null) {
+      return null;
     }
 
-    public Long getOrganismFromToken(String token) {
-      Claims claims = Jwts.parserBuilder().setSigningKey(key()).build().parseClaimsJws(token).getBody();
-      return claims.get("organism", Long.class);
+    Claims claims = jwsClaims.getBody();
+    return claims.getSubject();
   }
-  
-  public String generateTokenFromUsername(String username) {   
-    return Jwts.builder()
-              .setSubject(username)
-              .setIssuedAt(new Date())
-              .setExpiration(new Date((new Date()).getTime() + jwtExpirationMs))
-              .signWith(key(), SignatureAlgorithm.HS256)
-              .compact();
+
+  public Collection<? extends GrantedAuthority> getRolesFromJwtToken(String token) {
+    Jws<Claims> jwsClaims = getClaims(token);
+    if (jwsClaims == null) {
+      return null;
+    }
+
+    Claims claims = jwsClaims.getBody();
+    return AuthorityUtils
+        .createAuthorityList(claims.get("roles", Collection.class));
   }
+
+  public Long getOrganismFromJwtToken(String token) {
+    Jws<Claims> jwsClaims = getClaims(token);
+    if (jwsClaims == null) {
+      return null;
+    }
+
+    Claims claims = jwsClaims.getBody();
+    return claims.get("organism", Long.class);
+  }
+
+
+
 }
